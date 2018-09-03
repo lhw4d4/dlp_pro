@@ -60,7 +60,7 @@ class Consumer(threading.Thread):
         self.stop=True
 
 
-#16进制转换函数
+
 def hex(argv):
     result=[]
     hlen=len(argv)
@@ -95,9 +95,8 @@ def getfile_svg(filepath):
     return all_file
 
 
-#串口初始化程序
+    
 def ui_control(port,boud):
-	#打印用参数初始化
     speed=0
     upheight=0
     slice_path=""
@@ -111,29 +110,23 @@ def ui_control(port,boud):
     slice_file=""
     print_file=""
     totallayer=0
-	#初始化电机
     stepper_init()
     try:		
-	#尝试进行串口连接
         device=serial.Serial(port,boud)
     except serial.serialutil.SerialException,e:
         print e
         return
     device.flushInput()
     device.flushOutput()
-	#向串口写入数据
     device.write("""page 1\xff\xff\xff""")
     while True:
 	try:
-		#串口读取数据
-        str=device.read(6)
+            str=device.read(6)
 	except serial.portNotOpenError:
-		#如果串口被以外关闭，丢弃连接
 	    print "error happen"
 	    device.close()
    	    break
 	else:
-		#以16进制转换数据
             result=hex(str)
             print result
             var=result[1]
@@ -162,6 +155,7 @@ def ui_control(port,boud):
 		    if sliceorprint==2:
 			print_path='/media'
                         print_file=getfile_svg(print_path)
+                        print "haha"
                         num=len(print_file)
                         i=0
                         flag=1
@@ -298,7 +292,7 @@ def ui_control(port,boud):
                 elif var=='07':
                     device.write("""page 4\xff\xff\xff""")
                 elif var=='0e':    
-                    t0=Print(printfile,timeinterval,layerheight)
+                    t0=Print(printfile,timeinterval,layerheight)   #upheight
                     t1=Consumer(t0,device)
                     device.write("j0.val=0\xff\xff\xff")
                     device.write("n1.val=0\xff\xff\xff")
@@ -336,6 +330,7 @@ def ui_control(port,boud):
 		    print "speed:",speed
                 elif var=="0c":
                     upheight=int(result[3],16)*256+int(result[2],16)
+                    #upheight = (float)upheight / 1000## Mao
                     print "upheight:",upheight
 		elif var=="0d":
 		    timeinterval=int(result[3],16)*256+int(result[2],16)
@@ -381,23 +376,18 @@ def ui_control(port,boud):
     
 
 if __name__=='__main__':
-	#循环
     while True:
-	device_name = None
-	#在树莓派的USB设备中寻找U盘设备
+	device_name=None
         for uartfile in os.listdir("/dev"):
-		#如果设备名字是ttyusb，那么确认找到
             if uartfile.startswith("ttyUSB"):
             	device_name="/dev/"+uartfile
-	if device_name != None:
+	if device_name!=None:
 	    print device_name
-		#如果找到了U盘设备，那么初始化电机串口
-        ui_control(device_name,9600)
+            ui_control(device_name,9600)
 	    print "run error"
             
 	else:
-        print "over"
-		#2秒轮询
+            print "over"
   	    time.sleep(2)
             
 

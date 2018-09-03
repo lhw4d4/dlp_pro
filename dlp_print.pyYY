@@ -32,19 +32,14 @@ print ser.isOpen()
 acerPowerOn  = "* 0 IR 001\r"
 acerPowerOff = "* 0 IR 002\r"
 
+####################################################
+
+
+Z_limit = 500    #150
 Z_before = 0
 Z_set    = 0
 Z_layernow = 0
-################   Config!!!!!!           ####################################
-
-
-Z_limit = 250           #150
-pitch = 4.0             #pitch   4.0, 8.0
-pull_val = 2.0          #pull back   if you don want to pull back, set to 0.
-stepper_open = 4.3      # stepoper_di:  45_degree : 4.3  / 90_degree : 6.8  / 135_degree : 9.3 
-
-########################################################
-
+pitch = 4.0    #pitch 
 class Print(threading.Thread):
     def __init__(self,dirname,exposure_time,height_in):
         threading.Thread.__init__(self)
@@ -56,7 +51,7 @@ class Print(threading.Thread):
         stepper_init()
         #for stepper
         self.exposure_trans = exposure_time
-        self.stepper_pullback = pull_val   #2.0
+        self.stepper_pullback = 2.0  #2.0
         self.exposure_t = 0 #int(exposure_time*1000)
         self.stop = False
         self.suspend = False
@@ -112,7 +107,7 @@ class Print(threading.Thread):
        #.......
         self.SteerPrintOn()
         for Png_name in Png_files:
-                if svg_num <= 3:   #exposure time in first time is different
+                if svg_num == 1:   #exposure time in first time is different
                     self.exposure_t = int(self.exposure_trans  *3)
                     #self.SteerPrintOn()
                 else:
@@ -125,14 +120,13 @@ class Print(threading.Thread):
                 cv2.imshow("image",img_r)
                 self.RelayOn()                           
                 cv2.waitKey(self.exposure_t)   # delay ms
-#                self.RelayOff()                          
+                self.RelayOff()                          
                 if svg_num == 1:
                     cv2.waitKey(200)
                     self.SteerPrintOn()
                     cv2.waitKey(self.exposure_t)
                 # SHOW Black 
                 cv2.imshow("image",blank_p)  #blank
-                self.RelayOff()
                 cv2.waitKey(1)  #delay 1000  ,easy to change
                 # Move UP
                 Z_set = Z_set + stepper_pb #+ height_float
@@ -216,7 +210,7 @@ class Print(threading.Thread):
         GPIO.setup(12,GPIO.OUT)
         p_pwm = GPIO.PWM(12,50)
         p_pwm.start(0)
-        p_pwm.ChangeDutyCycle(stepper_open)             
+        p_pwm.ChangeDutyCycle(4.3)             
         #GPIO.cleanup(12)
     
         #GPIO.output(16,GPIO.HIGH)
@@ -320,16 +314,12 @@ def Gohome():
     #step_control(2.0) # go up 2mm incase hitting the board
     MotorDOWN()
     touch_value = GPIO.input(15)
-    while(1):   #if touch == 1 stop , at home 11111111111
+    while(touch_value == 0):   #if touch == 1 stop , at home 11111111111
         GPIO.output(11 , GPIO.HIGH)
         time.sleep(0.000003)
         GPIO.output(11 , GPIO.LOW)
         time.sleep(0.000003)
         touch_value = GPIO.input(15)
-        if touch_value == 1:
-            time.sleep(0.05)
-            if touch_value == 1:
-                break;
     Z_before = 0
     Z_set    = 0
     Z_set = Z_set + 5.0
@@ -337,16 +327,12 @@ def Gohome():
 
     MotorDOWN()
     touch_value = GPIO.input(15)
-    while(1):   #if touch == 1 stop , at home 22222222
+    while(touch_value == 0):   #if touch == 1 stop , at home 22222222
         GPIO.output(11 , GPIO.HIGH)
         time.sleep(0.0001)
         GPIO.output(11 , GPIO.LOW)
         time.sleep(0.0001)
         touch_value = GPIO.input(15)
-        if touch_value == 1:
-            time.sleep(0.05)
-            if touch_value == 1:
-                break;
     Z_before = 0
     Z_set    = 0
 
