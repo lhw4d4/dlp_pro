@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding=utf-8
+
 import cv2
 import numpy as np
 import os,sys,stat
@@ -12,7 +15,6 @@ import serial
     Hail 409!
 """     
 
-#################  2016.9.11  add pwm and gpio ##########3
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(16,GPIO.OUT)     # for gpio  relay
 GPIO.output(16,GPIO.LOW)    #relay
@@ -23,7 +25,6 @@ p_pwm.start(0)
 p_pwm.ChangeDutyCycle(3.0)
 time.sleep(2)
 #GPIO.cleanup(12)
-############### serial ############################3
 
 ser = serial.Serial('/dev/ttyAMA0',9600,timeout=1)
 
@@ -33,9 +34,8 @@ acerPowerOn  = "* 0 IR 001\r"
 acerPowerOff = "* 0 IR 002\r"
 
 Z_before = 0
-Z_set    = 0
+Z_set = 0
 Z_layernow = 0
-################   Config!!!!!!           ####################################
 
 
 Z_limit = 250           #150
@@ -43,18 +43,23 @@ pitch = 4.0             #pitch   4.0, 8.0
 pull_val = 2.0          #pull back   if you don want to pull back, set to 0.
 stepper_open = 4.3      # stepoper_di:  45_degree : 4.3  / 90_degree : 6.8  / 135_degree : 9.3 
 
-########################################################
 
 class Print(threading.Thread):
     def __init__(self,dirname,exposure_time,height_in):
         threading.Thread.__init__(self)
+        # 当前层数
         self.currentLayer = 0
+        # 总共层数
         self.totalLayer = 0
+        # 是否完成打印
         self.isfinishPrint = 0
+        # 目录名
         self.dirname = dirname
         self.height = float(height_in)   #HEIGHT
+        # 点击初始化
         stepper_init()
-        #for stepper
+        # for stepper
+        # 当前曝光时间
         self.exposure_trans = exposure_time
         self.stepper_pullback = pull_val   #2.0
         self.exposure_t = 0 #int(exposure_time*1000)
@@ -81,19 +86,16 @@ class Print(threading.Thread):
         svg_num = 1
         back_ground = cv2.imread("/home/pi/1920-1080.png")
         blank_p = cv2.imread("/home/pi/1920-1080.png")
-        
-        ##........place to change the scale
+
         r_plus  = 1.0  
 
         Gohome()
         Z_set = 0
         Z_before = 0
-        ################# start print Move ############################
         Z_layernow = height_float * svg_num
         Z_set = Z_layernow
         step_move()
-        
-        ################# start list  ################################
+
         Png_files = os.listdir(self.dirname)
         Png_files.sort()
       #  try:
@@ -169,8 +171,7 @@ class Print(threading.Thread):
                     self.MotorPrintOver()
                     self.currentLayer=-1
                     break
-       
-        
+
     def getcurrentLayer_print(self):
         return self.currentLayer
 
@@ -204,13 +205,12 @@ class Print(threading.Thread):
         self.stop=True
                                          
     def MotorPrintOver(self):
-	global Z_set
-	global Z_limit
-	global Z_before
+        global Z_set
+        global Z_limit
+        global Z_before
         Z_set = Z_set + 50.0
         step_move_fast()
-        
-################ def pwm   ##############
+
     def SteerPrintOn(self):                
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(12,GPIO.OUT)
@@ -241,23 +241,27 @@ class Print(threading.Thread):
 
 ################ def Motor ###################
 
+
 def stepper_init():
     GPIO.setmode(GPIO.BOARD)
     GPIO.setup(11,GPIO.OUT)     #pwm control
     GPIO.setup(13,GPIO.OUT)     #direct control 
     GPIO.setup(15,GPIO.IN)      #home singal
 
+
 def MotorDOWN():         #close to the liquid
     GPIO.output(13 , GPIO.LOW)
+
 
 def MotorUP():         #far from the liquid 
     GPIO.output(13 , GPIO.HIGH)
 
+
 def step_control(distance):   #def for control step
     global pitch
     step_number = 6400 * distance / pitch
-    count = 0;
-    while (count < step_number):
+    count = 0
+    while count < step_number:
         GPIO.output(11 , GPIO.HIGH)
         time.sleep(0.00005)
         GPIO.output(11 , GPIO.LOW)
@@ -265,17 +269,19 @@ def step_control(distance):   #def for control step
         #print "outputing "
         count = count + 1    
 
+
 def step_control_fast(distance):   #def for control step
     global pitch
     step_number = 6400 * distance / pitch
-    count = 0;
-    while (count < step_number):
+    count = 0
+    while count < step_number:
         GPIO.output(11 , GPIO.HIGH)
         time.sleep(0.00001)
         GPIO.output(11 , GPIO.LOW)
         time.sleep(0.00001)
         #print "outputing "
         count = count + 1    
+
 
 def step_move():
     global Z_set
@@ -295,6 +301,7 @@ def step_move():
     step_control(z_move)
     Z_before = Z_set
 
+
 def step_move_fast():
     global Z_set
     global Z_before
@@ -313,6 +320,7 @@ def step_move_fast():
     step_control_fast(z_move)
     Z_before = Z_set
 
+
 def Gohome():
     global Z_before 
     global Z_set    
@@ -320,7 +328,7 @@ def Gohome():
     #step_control(2.0) # go up 2mm incase hitting the board
     MotorDOWN()
     touch_value = GPIO.input(15)
-    while(1):   #if touch == 1 stop , at home 11111111111
+    while True:   #if touch == 1 stop , at home 11111111111
         GPIO.output(11 , GPIO.HIGH)
         time.sleep(0.000003)
         GPIO.output(11 , GPIO.LOW)
@@ -329,15 +337,15 @@ def Gohome():
         if touch_value == 1:
             time.sleep(0.05)
             if touch_value == 1:
-                break;
+                break
     Z_before = 0
-    Z_set    = 0
+    Z_set = 0
     Z_set = Z_set + 5.0
     step_move_fast()
 
     MotorDOWN()
     touch_value = GPIO.input(15)
-    while(1):   #if touch == 1 stop , at home 22222222
+    while True:   #if touch == 1 stop , at home 22222222
         GPIO.output(11 , GPIO.HIGH)
         time.sleep(0.0001)
         GPIO.output(11 , GPIO.LOW)
@@ -348,7 +356,8 @@ def Gohome():
             if touch_value == 1:
                 break;
     Z_before = 0
-    Z_set    = 0
+    Z_set = 0
+
 
 def BigStep(direct):
     global Z_set
@@ -358,6 +367,7 @@ def BigStep(direct):
     else:
         Z_set = Z_set - 5.0
         step_move()
+
 
 def SmallStep(direct):
     global Z_set
@@ -369,5 +379,4 @@ def SmallStep(direct):
         step_move()
 
 
-    
-################ def USART ##############
+

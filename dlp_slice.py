@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+# coding=utf-8
+
 import cairosvg
 import os,sys,stat
 import threading
+
 
 class Slice(threading.Thread):
     def __init__(self,filename,height):
