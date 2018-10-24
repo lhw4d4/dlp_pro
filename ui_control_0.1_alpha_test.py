@@ -52,22 +52,30 @@ class Consumer(threading.Thread):
                 if result == -1:
                     self.device.write("""page 7\xff\xff\xff""")
                     break
+                # 显示当前打印进度
+                # 当前层数
                 self.device.write("""n1.val=%d\xff\xff\xff""" % result)
+                # 打印百分比
                 self.device.write("""j0.val=%d\xff\xff\xff""" % (result*100/totallayer))
+                # 消耗的时间
                 self.device.write("""t4.txt="%d"\xff\xff\xff""" % timespent)
                 time.sleep(1)
                 timespent = timespent+1
-    
+
+    # 暂停打印
     def thread_suspend(self):
         self.suspend = True
 
+    # 重新打印
     def thread_restart(self):
         self.suspend = False
 
+    # 停止打印
     def thread_stop(self):
         self.stop = True
 
 
+# 解析16进制数据
 def hex(argv):
     result = []
     hlen = len(argv)
@@ -77,7 +85,7 @@ def hex(argv):
         result.append(hhex)
     return result
 
-
+# 查找当前目录的stl
 def getfile_stl(filepath):
     current_files = os.listdir(filepath)
     all_file = []
@@ -90,7 +98,7 @@ def getfile_stl(filepath):
     all_file.append("<<===||")
     return all_file
 
-
+# 查找当前目录的svg
 def getfile_svg(filepath):
     current_files = os.listdir(filepath)
     all_file = []
@@ -107,6 +115,7 @@ def ui_control(port, boud):
     upheight = 0
     slice_path = ""
     print_path = ""
+    # 0 初始化 1 切片 2 打印
     sliceorprint = 0
     height = 0
     timeinterval = 0
@@ -142,8 +151,10 @@ def ui_control(port, boud):
             result = hex(str)
             print result
             var = result[1]
+            # 向串口屏发送u盘中的信息
             if result[0] == '00':
                 if var == '00':
+                    # 开始切片 stl
                     if sliceorprint == 1:
                         slice_path = '/media'
                         slice_file = getfile_stl(slice_path)
@@ -164,10 +175,10 @@ def ui_control(port, boud):
                                     device.write("""t%d.txt=" "\xff\xff\xff""" % i) 
                             number = number+1
                             i = i+1
+                    # 开始打印svg
                     if sliceorprint == 2:
                         print_path = '/media'
                         print_file = getfile_svg(print_path)
-                        print "haha"
                         num = len(print_file)
                         i = 0
                         flag = 1
@@ -184,8 +195,10 @@ def ui_control(port, boud):
                                     device.write("t%d.txt=\" \"\xff\xff\xff" % i)
                             number = number+1
                             i = i+1
+                # 设置打印
                 elif var == "11":
                     sliceorprint = int(result[2], 16)
+                # 选择下一页或上一页  每页5项
                 elif var == '10':
                     flag = 1
                     if sliceorprint == 1:
@@ -215,6 +228,7 @@ def ui_control(port, boud):
                                 else:
                                     device.write("""t%d.txt=""\xff\xff\xff""" % i)
                                     number = number+1
+                # 选择指定的文件或文件夹
                 elif var == '01':
                     if sliceorprint == 1:
                         flag = 1
@@ -270,7 +284,8 @@ def ui_control(port, boud):
                                     flag=0
                                 else:
                                     device.write("""t%d.txt=\" \"\xff\xff\xff"""%i)
-                            
+
+                # 确定文件或文件夹
                 elif var == "15":
                     if sliceorprint == 1:
                         postfile = slice_file[int(result[2], 16)]
@@ -284,25 +299,31 @@ def ui_control(port, boud):
                         printfile = totalfile
                         device.write("""page 11\xff\xff\xff""")
                         device.write("""t1.txt="%s"\xff\xff\xff""" % postfile)
+                # 进入打印设置页 返回当前的打印目录及打印文件
                 elif var == '02':
                     if sliceorprint == 1:
                         device.write("t1.txt=\"%s\"\xff\xff\xff" % os.path.split(slicefile)[1])
                     else:
                         device.write("t1.txt=\"%s\"\xff\xff\xff" % os.path.split(printfile)[1])
+                # 暂停打印
                 elif var == '03':
                     print "suspend"
                     t0.thread_suspend()
+                # 开始打印
                 elif var == '04':
                     print "start"
                     t0.thread_suspend()
+                # 停止打印
                 elif var=='05':
                     print "stop"
                     t0.thread_stop()
                     t1.thread_stop()
                 elif var == '06':
                     print "restart"
+                # 重新打印
                 elif var == '07':
                     device.write("""page 4\xff\xff\xff""")
+                # 开始
                 elif var == '0e':
                     t0 = Print(printfile, timeinterval, layerheight)   # upheight
                     t1 = Consumer(t0, device)
@@ -310,6 +331,7 @@ def ui_control(port, boud):
                     device.write("n1.val=0\xff\xff\xff")
                     t0.start()
                     t1.start()
+                # 进入切片状态 返回切片进度（百分比）和进度条
                 elif var == '08':
                     print "slice start"
                     height = float(height)*0.001
@@ -329,28 +351,34 @@ def ui_control(port, boud):
                             device.write("""t1.txt="%d/%d"\xff\xff\xff""" % (totallayer, totallayer))
                             device.write("""vis b0,1\xff\xff\xff""")
                             break
-
+                # 确认切片信息 返回设置的层高 速度 上拉高度
                 elif var == "09":
                     device.write("""t0.txt="h:%d"\xff\xff\xff""" % height)
                     device.write("""t1.txt="t:%d"\xff\xff\xff""" % speed)
                     device.write("""t2.txt="s:%.02f"\xff\xff\xff""" % upheight)
+                # 设置层高
                 elif var == "0a":
                     height = int(result[3], 16) * 256 + int(result[2], 16)
                     print "height:", height
+                # 设置电机速度
                 elif var == "0b":
                     speed = int(result[3], 16) * 256 + int(result[2], 16)
                     print "speed:", speed
+                # 上拉高度
                 elif var == "0c":
                     upheight = int(result[3], 16) * 256 + int(result[2], 16)
                     # upheight = (float)upheight / 1000## Mao
                     print "upheight:", upheight
+                # 打印曝光时间ms
                 elif var == "0d":
                     timeinterval = int(result[3], 16) * 256 + int(result[2], 16)
                     timeinterval = float(timeinterval)
                     print "timeinterval:", timeinterval
+                # 取消设置
                 elif var == "0f":
                     slice_file = []
                     print_file = []
+                # 复位
                 elif var == "12":
                     # 00 12 ff ff fff fff
                     # 复位 使设置和打印按钮隐藏起来
@@ -361,20 +389,24 @@ def ui_control(port, boud):
                     # 重新显示设置和打印按钮
                     device.write("""vis b0,1\xff\xff\xff""")
                     device.write("""vis b3,1\xff\xff\xff""")
+                # 粗调 5mm
                 elif var == "13":
                     if int(result[2], 16) == 1:
                         BigStep(1)
                     elif int(result[2], 16) == 0:
                         BigStep(0)
+                # 细调 100um
                 elif var == "14":
                     if int(result[2], 16) == 1:
                         SmallStep(1)
                     elif int(result[2], 16) == 0:
                         SmallStep(0)
+                # 层高设置 um
                 elif var == "16":
                     layerheight = int(result[3], 16) * 256 + int(result[2], 16)
                     layerheight = float(layerheight)/1000
                     print "layerheight:", layerheight
+                # 确认打印设置  返回设置的层高及时间间隔
                 elif var == "17":
                     device.write("""t0.txt="%f"\xff\xff\xff""" % layerheight)
                     device.write("""t1.txt="%f"\xff\xff\xff""" % timeinterval)
