@@ -1,3 +1,4 @@
+#串口测试代码
 import serial
 import time
 

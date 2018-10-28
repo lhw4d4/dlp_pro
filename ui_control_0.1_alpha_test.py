@@ -9,7 +9,7 @@ import Queue
 from dlp_slice import Slice
 from dlp_print import *
 
-
+#向串口屏写入数据
 def device_write(device,strl):
     try:
         device.write(strl)
@@ -85,7 +85,7 @@ def hex(argv):
         result.append(hhex)
     return result
 
-# 查找当前目录的stl
+# 查找当前目录的stl文件
 def getfile_stl(filepath):
     current_files = os.listdir(filepath)
     all_file = []
@@ -98,7 +98,7 @@ def getfile_stl(filepath):
     all_file.append("<<===||")
     return all_file
 
-# 查找当前目录的svg
+# 查找当前目录的svg文件
 def getfile_svg(filepath):
     current_files = os.listdir(filepath)
     all_file = []
@@ -157,12 +157,15 @@ def ui_control(port, boud):
                     # 开始切片 stl
                     if sliceorprint == 1:
                         slice_path = '/media'
+						#获取切片文件路径
                         slice_file = getfile_stl(slice_path)
                         print slice_file
+						#获取切片文件长度
                         num = len(slice_file)
                         i = 0
                         flag = 1
                         number = int(result[2], 16)
+						#while循环，在串口屏上面显示当前路径下的文件名，每页5条，下同
                         while i < 5:
                             if number < num:
                                 print "t%d.txt=\"%s\"\xff\xff\xff" % (i, slice_file[number])
@@ -178,6 +181,7 @@ def ui_control(port, boud):
                     # 开始打印svg
                     if sliceorprint == 2:
                         print_path = '/media'
+						#获取svg文件路径
                         print_file = getfile_svg(print_path)
                         num = len(print_file)
                         i = 0
@@ -201,6 +205,7 @@ def ui_control(port, boud):
                 # 选择下一页或上一页  每页5项
                 elif var == '10':
                     flag = 1
+					#切片模式
                     if sliceorprint == 1:
                         num = len(slice_file)
                         print slice_file
@@ -215,6 +220,7 @@ def ui_control(port, boud):
                                 else:
                                     device.write("""t%d.txt=""\xff\xff\xff""" % i)
                                     number = number+1
+					#打印模式
                     if sliceorprint == 2:
                         num = len(print_file)
                         number = int(result[2], 16)
@@ -316,7 +322,9 @@ def ui_control(port, boud):
                 # 停止打印
                 elif var=='05':
                     print "stop"
+					#打印线程终止
                     t0.thread_stop()
+					#串口通讯线程终止
                     t1.thread_stop()
                 elif var == '06':
                     print "restart"
@@ -336,6 +344,7 @@ def ui_control(port, boud):
                     print "slice start"
                     height = float(height)*0.001
                     print slicefile, height
+					#将需要切片的文件传入dlp_slice进行相应操作
                     sli = Slice(slicefile, height)
                     sli.start()
                     while True:
@@ -418,7 +427,7 @@ def ui_control(port, boud):
                 print "recv error!"
                 device.close()
 
-
+#主函数
 if __name__ == '__main__':
     while True:
         # u盘盘符
@@ -429,7 +438,7 @@ if __name__ == '__main__':
         # 查找到盘符 /dev/ttyUSB*
         if device_name:
             print device_name
-            # 运行屏幕交互程序 死循环， 波特率设置为9600？
+            # 运行屏幕交互程序 死循环， 波特率设置为9600
             ui_control(device_name, 9600)
             # 如果退出 表示运行异常
             print "run error"
